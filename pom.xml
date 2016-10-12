@@ -33,13 +33,7 @@
         <developerConnection>scm:git@github.com:mpusher/mpush.git</developerConnection>
     </scm>
 
-    <developers>
-        <developer>
-            <name>ohun</name>
-            <email>ohun@live.cm</email>
-            <organization>mpusher</organization>
-        </developer>
-    </developers>
+
 
     <modules>
         <module>mpush-api</module>
