@@ -19,15 +19,11 @@
 
 package com.mpush.tools;
 
-import com.mpush.tools.common.Profiler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.NetworkInterface;
-import java.net.Socket;
+import java.net.*;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -62,6 +58,34 @@ public final class Utils {
         return LOCAL_IP;
     }
 
+    public static NetworkInterface getLocalNetworkInterface() {
+        Enumeration<NetworkInterface> interfaces;
+        try {
+            interfaces = NetworkInterface.getNetworkInterfaces();
+        } catch (SocketException e) {
+            throw new RuntimeException("NetworkInterface not found", e);
+        }
+        while (interfaces.hasMoreElements()) {
+            NetworkInterface networkInterface = interfaces.nextElement();
+            Enumeration<InetAddress> addresses = networkInterface.getInetAddresses();
+            while (addresses.hasMoreElements()) {
+                InetAddress address = addresses.nextElement();
+                if (address.isLoopbackAddress()) continue;
+                if (address.getHostAddress().contains(":")) continue;
+                if (address.isSiteLocalAddress()) return networkInterface;
+            }
+        }
+        throw new RuntimeException("NetworkInterface not found");
+    }
+
+    public static InetAddress getInetAddress(String host) {
+        try {
+            return InetAddress.getByName(host);
+        } catch (UnknownHostException e) {
+            throw new IllegalArgumentException("UnknownHost " + host, e);
+        }
+    }
+
     /**
      * 只获取第一块网卡绑定的ip地址
      *
@@ -82,13 +106,13 @@ public final class Utils {
                             return address.getHostAddress();
                         }
                     } else {
-                        if (!address.isSiteLocalAddress()) {
+                        if (!address.isSiteLocalAddress() && !address.isLoopbackAddress()) {
                             return address.getHostAddress();
                         }
                     }
                 }
             }
-            LOGGER.warn("getInetAddress is null");
+            LOGGER.debug("getInetAddress is null, getLocal={}", getLocal);
             return getLocal ? "127.0.0.1" : null;
         } catch (Throwable e) {
             LOGGER.error("getInetAddress exception", e);

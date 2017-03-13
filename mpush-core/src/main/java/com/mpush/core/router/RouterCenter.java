@@ -30,6 +30,8 @@ import com.mpush.tools.event.EventBus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.mpush.common.ServerNodes.GS;
+
 /**
  * Created by ohun on 2015/12/23.
  *
@@ -55,7 +57,8 @@ public final class RouterCenter {
     public boolean register(String userId, Connection connection) {
         ClientLocation location = ClientLocation
                 .from(connection)
-                .setHost(Utils.getLocalIp());
+                .setHost(Utils.getLocalIp())
+                .setPort(GS.getPort());
 
         LocalRouter localRouter = new LocalRouter(connection);
         RemoteRouter remoteRouter = new RemoteRouter(location);
@@ -100,5 +103,9 @@ public final class RouterCenter {
 
     public RemoteRouterManager getRemoteRouterManager() {
         return remoteRouterManager;
+    }
+
+    public RouterChangeListener getRouterChangeListener() {
+        return routerChangeListener;
     }
 }

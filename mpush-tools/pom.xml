@@ -7,7 +7,7 @@
     <parent>
         <artifactId>mpush</artifactId>
         <groupId>com.github.mpusher</groupId>
-        <version>0.0.4</version>
+        <version>0.7.1</version>
     </parent>
 
     <artifactId>mpush-tools</artifactId>
@@ -41,12 +41,12 @@
             <artifactId>mpush-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.google.code.gson</groupId>
-            <artifactId>gson</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>fastjson</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -77,8 +77,8 @@
             <artifactId>log4j</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-collections4</artifactId>
+            <groupId>org.javassist</groupId>
+            <artifactId>javassist</artifactId>
         </dependency>
     </dependencies>
 </project>

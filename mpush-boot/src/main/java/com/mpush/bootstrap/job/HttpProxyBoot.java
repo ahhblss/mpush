@@ -19,11 +19,9 @@
 
 package com.mpush.bootstrap.job;
 
-import com.mpush.api.spi.SpiLoader;
 import com.mpush.api.spi.net.DnsMappingManager;
+import com.mpush.netty.http.NettyHttpClient;
 import com.mpush.tools.config.CC;
-
-import static com.mpush.tools.config.CC.mp.spi.dns_mapping_manager;
 
 /**
  * Created by yxx on 2016/5/15.
@@ -35,16 +33,19 @@ public final class HttpProxyBoot extends BootJob {
     @Override
     protected void start() {
         if (CC.mp.http.proxy_enabled) {
-            SpiLoader.load(DnsMappingManager.class, dns_mapping_manager).start();
+            NettyHttpClient.I().syncStart();
+            DnsMappingManager.create().start();
         }
+
         startNext();
     }
 
     @Override
     protected void stop() {
-        if (CC.mp.http.proxy_enabled) {
-            SpiLoader.load(DnsMappingManager.class, dns_mapping_manager).stop();
-        }
         stopNext();
+        if (CC.mp.http.proxy_enabled) {
+            NettyHttpClient.I().syncStop();
+            DnsMappingManager.create().stop();
+        }
     }
 }

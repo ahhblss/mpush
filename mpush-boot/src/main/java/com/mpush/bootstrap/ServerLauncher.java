@@ -21,12 +21,12 @@ package com.mpush.bootstrap;
 
 
 import com.mpush.bootstrap.job.*;
-import com.mpush.core.server.AdminServer;
-import com.mpush.core.server.ConnectionServer;
-import com.mpush.core.server.GatewayServer;
-import com.mpush.zk.node.ZKServerNode;
+import com.mpush.core.server.*;
 
-import static com.mpush.tools.config.CC.mp.net.admin_server_port;
+import static com.mpush.common.ServerNodes.*;
+import static com.mpush.tools.config.CC.mp.net.tcpGateway;
+import static com.mpush.tools.config.CC.mp.net.udpGateway;
+import static com.mpush.tools.config.CC.mp.net.wsEnabled;
 
 /**
  * Created by yxx on 2016/5/14.
@@ -38,21 +38,18 @@ public final class ServerLauncher {
     private final BootChain chain = BootChain.chain();
 
     public ServerLauncher() {
-        ZKServerNode csNode = ZKServerNode.csNode();
-        ZKServerNode gsNode = ZKServerNode.gsNode();
-        ConnectionServer connectServer = new ConnectionServer(csNode.getPort());
-        GatewayServer gatewayServer = new GatewayServer(gsNode.getPort());
-        AdminServer adminServer = new AdminServer(admin_server_port, connectServer, gatewayServer);
-
         chain.boot()
-                .setNext(new ZKBoot())//1.启动ZK节点数据变化监听
-                .setNext(new RedisBoot())//2.注册redis sever 到ZK
-                .setNext(new ServerBoot(connectServer, csNode))//3.启动长连接服务
-                .setNext(new ServerBoot(gatewayServer, gsNode))//4.启动网关服务
-                .setNext(new ServerBoot(adminServer, null))//5.启动控制台服务
-                .setNext(new HttpProxyBoot())//6.启动http代理服务，解析dnsgit
-                .setNext(new MonitorBoot())//7.启动监控
-                .setNext(new LastBoot());//8.启动结束
+                .setNext(new CacheManagerBoot())//1.初始化缓存模块
+                .setNext(new ServiceRegistryBoot())//2.启动服务注册与发现模块
+                .setNext(new ServerBoot(ConnectionServer.I(), CS))//3.启动接入服务
+                .setNext(() -> new ServerBoot(WebSocketServer.I(), WS), wsEnabled())//4.启动websocket接入服务
+                .setNext(() -> new ServerBoot(GatewayUDPConnector.I(), GS), udpGateway())//5.启动udp网关服务
+                .setNext(() -> new ServerBoot(GatewayServer.I(), GS), tcpGateway())//6.启动tcp网关服务
+                .setNext(new ServerBoot(AdminServer.I(), null))//7.启动控制台服务
+                .setNext(new PushCenterBoot())//8.启动推送中心组件
+                .setNext(new HttpProxyBoot())//9.启动http代理服务，dns解析服务
+                .setNext(new MonitorBoot())//10.启动监控服务
+                .end();
     }
 
     public void start() {

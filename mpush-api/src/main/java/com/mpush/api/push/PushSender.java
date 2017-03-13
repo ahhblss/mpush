@@ -19,12 +19,9 @@
 
 package com.mpush.api.push;
 
-import com.mpush.api.protocol.Packet;
 import com.mpush.api.service.Service;
-import com.mpush.api.spi.SpiLoader;
 import com.mpush.api.spi.client.PusherFactory;
 
-import java.util.Collection;
 import java.util.concurrent.FutureTask;
 
 /**
@@ -40,7 +37,7 @@ public interface PushSender extends Service {
      * @return PushSender
      */
     static PushSender create() {
-        return SpiLoader.load(PusherFactory.class).get();
+        return PusherFactory.create();
     }
 
     /**
@@ -49,9 +46,9 @@ public interface PushSender extends Service {
      * @param context 推送参数
      * @return FutureTask 可用于同步调用
      */
-    FutureTask<Boolean> send(PushContext context);
+    FutureTask<PushResult> send(PushContext context);
 
-    default FutureTask<Boolean> send(String context, String userId, PushCallback callback) {
+    default FutureTask<PushResult> send(String context, String userId, PushCallback callback) {
         return send(PushContext
                 .build(context)
                 .setUserId(userId)
@@ -59,7 +56,7 @@ public interface PushSender extends Service {
         );
     }
 
-    default FutureTask<Boolean> send(String context, String userId, AckModel ackModel, PushCallback callback) {
+    default FutureTask<PushResult> send(String context, String userId, AckModel ackModel, PushCallback callback) {
         return send(PushContext
                 .build(context)
                 .setAckModel(ackModel)

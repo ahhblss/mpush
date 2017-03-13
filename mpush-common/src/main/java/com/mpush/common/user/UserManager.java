@@ -19,8 +19,9 @@
 
 package com.mpush.common.user;
 
-import com.mpush.cache.redis.RedisKey;
-import com.mpush.cache.redis.manager.RedisManager;
+import com.mpush.api.spi.common.CacheManager;
+import com.mpush.api.spi.common.CacheManagerFactory;
+import com.mpush.common.CacheKeys;
 import com.mpush.tools.config.ConfigManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,40 +33,41 @@ public final class UserManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(UserManager.class);
     public static final UserManager I = new UserManager();
 
-    private final String ONLINE_KEY = RedisKey.getUserOnlineKey(ConfigManager.I.getPublicIp());
+    private final CacheManager cacheManager = CacheManagerFactory.create();
 
-    public void clearUserOnlineData()  {
-        RedisManager.I.del(ONLINE_KEY);
+
+    private final String onlineUserListKey = CacheKeys.getOnlineUserListKey(ConfigManager.I.getPublicIp());
+
+    public void clearUserOnlineData() {
+        cacheManager.del(onlineUserListKey);
     }
 
     public void addToOnlineList(String userId) {
-        RedisManager.I.zAdd(ONLINE_KEY, userId);
+        cacheManager.zAdd(onlineUserListKey, userId);
         LOGGER.info("user online {}", userId);
     }
 
     public void remFormOnlineList(String userId) {
-        RedisManager.I.zRem(ONLINE_KEY, userId);
+        cacheManager.zRem(onlineUserListKey, userId);
         LOGGER.info("user offline {}", userId);
     }
 
     //在线用户数量
     public long getOnlineUserNum() {
-        Long value = RedisManager.I.zCard(ONLINE_KEY);
+        Long value = cacheManager.zCard(onlineUserListKey);
         return value == null ? 0 : value;
     }
 
     //在线用户数量
     public long getOnlineUserNum(String publicIP) {
-        String online_key = RedisKey.getUserOnlineKey(publicIP);
-        Long value = RedisManager.I.zCard(online_key);
+        String online_key = CacheKeys.getOnlineUserListKey(publicIP);
+        Long value = cacheManager.zCard(online_key);
         return value == null ? 0 : value;
     }
 
     //在线用户列表
-    public List<String> getOnlineUserList(int start, int size) {
-        if (size < 10) {
-            size = 10;
-        }
-        return RedisManager.I.zrange(ONLINE_KEY, start, size - 1, String.class);
+    public List<String> getOnlineUserList(String publicIP, int start, int end) {
+        String key = CacheKeys.getOnlineUserListKey(publicIP);
+        return cacheManager.zrange(key, start, end, String.class);
     }
 }

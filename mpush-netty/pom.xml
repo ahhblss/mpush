@@ -8,7 +8,7 @@
     <parent>
         <artifactId>mpush</artifactId>
         <groupId>com.github.mpusher</groupId>
-        <version>0.0.4</version>
+        <version>0.7.1</version>
     </parent>
 
     <artifactId>mpush-netty</artifactId>
@@ -43,6 +43,14 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-handler</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport-udt</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport-sctp</artifactId>
         </dependency>
     </dependencies>
 </project>

@@ -22,22 +22,24 @@ package com.mpush.core.handler;
 import com.google.common.base.Strings;
 import com.mpush.api.connection.Connection;
 import com.mpush.api.protocol.Packet;
-import com.mpush.api.spi.SpiLoader;
 import com.mpush.api.spi.net.DnsMapping;
 import com.mpush.api.spi.net.DnsMappingManager;
 import com.mpush.common.handler.BaseMessageHandler;
 import com.mpush.common.message.HttpRequestMessage;
 import com.mpush.common.message.HttpResponseMessage;
-import com.mpush.common.net.HttpProxyDnsMappingManager;
 import com.mpush.netty.http.HttpCallback;
 import com.mpush.netty.http.HttpClient;
+import com.mpush.netty.http.NettyHttpClient;
 import com.mpush.netty.http.RequestContext;
 import com.mpush.tools.common.Profiler;
-import com.mpush.tools.config.CC;
 import com.mpush.tools.log.Logs;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
+import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.*;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
 import java.net.MalformedURLException;
@@ -53,14 +55,9 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
  * @author ohun@live.cn
  */
 public class HttpProxyHandler extends BaseMessageHandler<HttpRequestMessage> {
-    private static final Logger LOGGER = Logs.HTTP;
-    private final HttpClient httpClient;
-    private final DnsMappingManager dnsMappingManager = SpiLoader.load(DnsMappingManager.class, CC.mp.spi.dns_mapping_manager);
-
-    public HttpProxyHandler(HttpClient httpClient) {
-        this.httpClient = httpClient;
-        this.httpClient.start();
-    }
+    private static final Logger LOGGER = LoggerFactory.getLogger(HttpProxyHandler.class);
+    private final HttpClient httpClient = NettyHttpClient.I();
+    private final DnsMappingManager dnsMappingManager = DnsMappingManager.create();
 
     @Override
     public HttpRequestMessage decode(Packet packet, Connection connection) {
@@ -70,7 +67,6 @@ public class HttpProxyHandler extends BaseMessageHandler<HttpRequestMessage> {
     @Override
     public void handle(HttpRequestMessage message) {
         try {
-            Profiler.enter("start http proxy handler");
             //1.参数校验
             String method = message.getMethod();
             String uri = message.uri;
@@ -80,17 +76,18 @@ public class HttpProxyHandler extends BaseMessageHandler<HttpRequestMessage> {
                         .setStatusCode(400)
                         .setReasonPhrase("Bad Request")
                         .sendRaw();
-                LOGGER.warn("request url is empty!");
+                Logs.HTTP.warn("receive bad request url is empty, request={}", message);
             }
 
             //2.url转换
             uri = doDnsMapping(uri);
 
+            Profiler.enter("time cost on [create FullHttpRequest]");
             //3.包装成HTTP request
-            FullHttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, HttpMethod.valueOf(method), uri);
+            FullHttpRequest request = new DefaultFullHttpRequest(HTTP_1_1, HttpMethod.valueOf(method), uri, getBody(message));
             setHeaders(request, message);//处理header
-            setBody(request, message);//处理body
 
+            Profiler.enter("time cost on [HttpClient.request]");
             //4.发送请求
             httpClient.request(new RequestContext(request, new DefaultHttpCallback(message)));
         } catch (Exception e) {
@@ -100,6 +97,7 @@ public class HttpProxyHandler extends BaseMessageHandler<HttpRequestMessage> {
                     .setReasonPhrase("Bad Gateway")
                     .sendRaw();
             LOGGER.error("send request ex, message=" + message, e);
+            Logs.HTTP.error("send proxy request ex, request={}, error={}", message, e.getMessage());
         } finally {
             Profiler.release();
         }
@@ -133,7 +131,7 @@ public class HttpProxyHandler extends BaseMessageHandler<HttpRequestMessage> {
                 }
             }
             response.send();
-            LOGGER.debug("callback success request={}, response={}", request, response);
+            Logs.HTTP.info("send proxy request success end request={}, response={}", request, response);
         }
 
         @Override
@@ -143,7 +141,7 @@ public class HttpProxyHandler extends BaseMessageHandler<HttpRequestMessage> {
                     .setStatusCode(statusCode)
                     .setReasonPhrase(reasonPhrase)
                     .sendRaw();
-            LOGGER.warn("callback failure request={}, response={}", request, statusCode + ":" + reasonPhrase);
+            Logs.HTTP.warn("send proxy request failure end request={}, response={}", request, statusCode + ":" + reasonPhrase);
         }
 
         @Override
@@ -153,7 +151,9 @@ public class HttpProxyHandler extends BaseMessageHandler<HttpRequestMessage> {
                     .setStatusCode(502)
                     .setReasonPhrase("Bad Gateway")
                     .sendRaw();
-            LOGGER.error("callback exception request={}, response={}", request, 502, throwable);
+
+            LOGGER.error("send proxy request ex end request={}, response={}", request, 502, throwable);
+            Logs.HTTP.error("send proxy request ex end request={}, response={}, error={}", request, 502, throwable.getMessage());
         }
 
         @Override
@@ -163,7 +163,7 @@ public class HttpProxyHandler extends BaseMessageHandler<HttpRequestMessage> {
                     .setStatusCode(408)
                     .setReasonPhrase("Request Timeout")
                     .sendRaw();
-            LOGGER.warn("callback timeout request={}, response={}", request, 408);
+            Logs.HTTP.warn("send proxy request timeout end request={}, response={}", request, 408);
         }
 
         @Override
@@ -181,18 +181,19 @@ public class HttpProxyHandler extends BaseMessageHandler<HttpRequestMessage> {
                 httpHeaders.add(entry.getKey(), entry.getValue());
             }
         }
+
+        if (message.body != null && message.body.length > 0) {
+            request.headers().add(CONTENT_LENGTH, Integer.toString(message.body.length));
+        }
+
         InetSocketAddress remoteAddress = (InetSocketAddress) message.getConnection().getChannel().remoteAddress();
         String remoteIp = remoteAddress.getAddress().getHostAddress();//这个要小心，不要使用getHostName,不然会耗时比较大
         request.headers().add("x-forwarded-for", remoteIp);
         request.headers().add("x-forwarded-port", Integer.toString(remoteAddress.getPort()));
     }
 
-    private void setBody(FullHttpRequest request, HttpRequestMessage message) {
-        byte[] body = message.body;
-        if (body != null && body.length > 0) {
-            request.content().writeBytes(body);
-            request.headers().add(CONTENT_LENGTH, Integer.toString(body.length));
-        }
+    private ByteBuf getBody(HttpRequestMessage message) {
+        return message.body == null ? Unpooled.EMPTY_BUFFER : Unpooled.wrappedBuffer(message.body);
     }
 
     private String doDnsMapping(String url) {
@@ -200,6 +201,7 @@ public class HttpProxyHandler extends BaseMessageHandler<HttpRequestMessage> {
         try {
             uri = new URL(url);
         } catch (MalformedURLException e) {
+            //ignore e
         }
         if (uri == null) {
             return url;

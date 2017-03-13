@@ -24,14 +24,16 @@ import com.mpush.api.connection.Connection;
 import com.mpush.api.connection.SessionContext;
 import com.mpush.api.event.ConnectionCloseEvent;
 import com.mpush.api.event.UserOfflineEvent;
-import com.mpush.api.router.ClientType;
 import com.mpush.api.router.RouterManager;
 import com.mpush.tools.event.EventBus;
 import com.mpush.tools.event.EventConsumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -40,8 +42,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author ohun@live.cn
  */
 public final class LocalRouterManager extends EventConsumer implements RouterManager<LocalRouter> {
-    public static final Logger LOGGER = LoggerFactory.getLogger(LocalRouterManager.class);
-    private static final Map<Integer, LocalRouter> EMPTY = Collections.unmodifiableMap(new HashMap<>(0));
+    private static final Logger LOGGER = LoggerFactory.getLogger(LocalRouterManager.class);
+    private static final Map<Integer, LocalRouter> EMPTY = new HashMap<>(0);
 
     /**
      * 本地路由表
@@ -51,8 +53,7 @@ public final class LocalRouterManager extends EventConsumer implements RouterMan
     @Override
     public LocalRouter register(String userId, LocalRouter router) {
         LOGGER.info("register local router success userId={}, router={}", userId, router);
-        //add online userId
-        return routers.computeIfAbsent(userId, s -> new HashMap<>()).put(router.getClientType(), router);
+        return routers.computeIfAbsent(userId, s -> new HashMap<>(1)).put(router.getClientType(), router);
     }
 
     @Override
@@ -72,6 +73,10 @@ public final class LocalRouterManager extends EventConsumer implements RouterMan
         LocalRouter router = routers.getOrDefault(userId, EMPTY).get(clientType);
         LOGGER.info("lookup local router userId={}, router={}", userId, router);
         return router;
+    }
+
+    public Map<String, Map<Integer, LocalRouter>> routers() {
+        return routers;
     }
 
     /**

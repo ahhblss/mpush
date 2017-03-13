@@ -21,13 +21,15 @@ package com.mpush.bootstrap.job;
 
 import com.mpush.tools.log.Logs;
 
+import java.util.function.Supplier;
+
 /**
  * Created by yxx on 2016/5/14.
  *
  * @author ohun@live.cn
  */
 public abstract class BootJob {
-    private BootJob next;
+    protected BootJob next;
 
     protected abstract void start();
 
@@ -35,20 +37,35 @@ public abstract class BootJob {
 
     public void startNext() {
         if (next != null) {
-            Logs.Console.info("start next bootstrap job [{}]", next.getClass().getSimpleName());
+            Logs.Console.info("start bootstrap job [{}]", getNextName());
             next.start();
         }
     }
 
     public void stopNext() {
         if (next != null) {
-            Logs.Console.info("stop next bootstrap job [{}]", next.getClass().getSimpleName());
             next.stop();
+            Logs.Console.info("stopped bootstrap job [{}]", getNextName());
         }
     }
 
     public BootJob setNext(BootJob next) {
         this.next = next;
         return next;
+    }
+
+    public BootJob setNext(Supplier<BootJob> next, boolean enabled) {
+        if (enabled) {
+            return setNext(next.get());
+        }
+        return this;
+    }
+
+    protected String getNextName() {
+        return next.getName();
+    }
+
+    protected String getName() {
+        return this.getClass().getSimpleName();
     }
 }

@@ -19,117 +19,93 @@
 
 package com.mpush.tools.thread.pool;
 
-import com.mpush.api.spi.SpiLoader;
-import com.mpush.api.spi.common.ThreadPoolFactory;
+import com.mpush.api.spi.common.ExecutorFactory;
 import com.mpush.tools.thread.NamedThreadFactory;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.SingleThreadEventLoop;
+import io.netty.util.concurrent.EventExecutor;
+import io.netty.util.concurrent.ThreadProperties;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import static com.mpush.tools.config.CC.mp.spi.thread_pool_factory;
-
-public class ThreadPoolManager {
+public final class ThreadPoolManager {
     public static final ThreadPoolManager I = new ThreadPoolManager();
 
-    private final ThreadPoolFactory threadPoolFactory = SpiLoader.load(ThreadPoolFactory.class, thread_pool_factory);
+    private final ExecutorFactory executorFactory = ExecutorFactory.create();
     private final NamedThreadFactory threadFactory = new NamedThreadFactory();
 
-    private Executor bossExecutor;
-    private Executor workExecutor;
-    private Executor bizExecutor;
-    private Executor eventBusExecutor;
-    private Executor redisExecutor;
-    private Executor httpExecutor;
-    private Executor pushCallbackExecutor;
+    private final Map<String, Executor> pools = new ConcurrentHashMap<>();
 
     public final Thread newThread(String name, Runnable target) {
         return threadFactory.newThread(name, target);
     }
 
-    public Executor getHttpExecutor() {
-        if (httpExecutor == null) {
-            synchronized (this) {
-                httpExecutor = threadPoolFactory.get(ThreadPoolFactory.HTTP_CLIENT_WORK);
-            }
-        }
-        return httpExecutor;
-    }
-
     public Executor getRedisExecutor() {
-        if (redisExecutor == null) {
-            synchronized (this) {
-                redisExecutor = threadPoolFactory.get(ThreadPoolFactory.MQ);
-            }
-        }
-        return redisExecutor;
+        return pools.computeIfAbsent("mq", s -> executorFactory.get(ExecutorFactory.MQ));
     }
 
     public Executor getEventBusExecutor() {
-        if (eventBusExecutor == null) {
-            synchronized (this) {
-                eventBusExecutor = threadPoolFactory.get(ThreadPoolFactory.EVENT_BUS);
-            }
-        }
-        return eventBusExecutor;
+        return pools.computeIfAbsent("event-bus", s -> executorFactory.get(ExecutorFactory.EVENT_BUS));
     }
 
-    public Executor getBizExecutor() {
-        if (bizExecutor == null) {
-            synchronized (this) {
-                bizExecutor = threadPoolFactory.get(ThreadPoolFactory.BIZ);
-            }
-        }
-        return bizExecutor;
+    public ScheduledExecutorService getPushClientTimer() {
+        return (ScheduledExecutorService) pools.computeIfAbsent("push-client-timer"
+                , s -> executorFactory.get(ExecutorFactory.PUSH_CLIENT));
     }
 
-    public Executor getWorkExecutor() {
-        if (workExecutor == null) {
-            synchronized (this) {
-                workExecutor = threadPoolFactory.get(ThreadPoolFactory.SERVER_WORK);
-            }
-        }
-        return workExecutor;
+    public ScheduledExecutorService getPushTaskTimer() {
+        return (ScheduledExecutorService) pools.computeIfAbsent("push-task-timer"
+                , s -> executorFactory.get(ExecutorFactory.PUSH_TASK));
     }
 
-    public Executor getBossExecutor() {
-        if (bossExecutor == null) {
-            synchronized (this) {
-                bossExecutor = threadPoolFactory.get(ThreadPoolFactory.SERVER_BOSS);
-            }
-        }
-        return bossExecutor;
+    public ScheduledExecutorService getAckTimer() {
+        return (ScheduledExecutorService) pools.computeIfAbsent("ack-timer"
+                , s -> executorFactory.get(ExecutorFactory.ACK_TIMER));
     }
 
-    public Executor getPushCallbackExecutor() {
-        if (pushCallbackExecutor == null) {
-            synchronized (this) {
-                pushCallbackExecutor = threadPoolFactory.get(ThreadPoolFactory.PUSH_CALLBACK);
-            }
-        }
-        return pushCallbackExecutor;
+    public void register(String name, Executor executor) {
+        Objects.requireNonNull(name);
+        Objects.requireNonNull(executor);
+        pools.put(name, executor);
     }
 
     public Map<String, Executor> getActivePools() {
-        Map<String, Executor> map = new HashMap<>();
-        if (bossExecutor != null) map.put("bossExecutor", bossExecutor);
-        if (workExecutor != null) map.put("workExecutor", workExecutor);
-        if (bizExecutor != null) map.put("bizExecutor", bizExecutor);
-        if (eventBusExecutor != null) map.put("eventBusExecutor", eventBusExecutor);
-        if (redisExecutor != null) map.put("redisExecutor", redisExecutor);
-        if (httpExecutor != null) map.put("httpExecutor", httpExecutor);
-        if (pushCallbackExecutor != null) map.put("pushCallbackExecutor", pushCallbackExecutor);
-        return map;
+        return pools;
     }
 
     public static Map<String, Object> getPoolInfo(ThreadPoolExecutor executor) {
-        Map<String, Object> info = new HashMap<>();
+        Map<String, Object> info = new HashMap<>(5);
         info.put("corePoolSize", executor.getCorePoolSize());
         info.put("maxPoolSize", executor.getMaximumPoolSize());
         info.put("activeCount(workingThread)", executor.getActiveCount());
         info.put("poolSize(workThread)", executor.getPoolSize());
         info.put("queueSize(blockedTask)", executor.getQueue().size());
+        return info;
+    }
+
+    public static Map<String, Object> getPoolInfo(EventLoopGroup executors) {
+        Map<String, Object> info = new HashMap<>(3);
+        int poolSize = 0, queueSize = 0, activeCount = 0;
+        for (EventExecutor e : executors) {
+            poolSize++;
+            if (e instanceof SingleThreadEventLoop) {
+                SingleThreadEventLoop executor = (SingleThreadEventLoop) e;
+                queueSize += executor.pendingTasks();
+                ThreadProperties tp = executor.threadProperties();
+                if (tp.state() == Thread.State.RUNNABLE) {
+                    activeCount++;
+                }
+            }
+        }
+        info.put("poolSize(workThread)", poolSize);
+        info.put("activeCount(workingThread)", activeCount);
+        info.put("queueSize(blockedTask)", queueSize);
         return info;
     }
 }

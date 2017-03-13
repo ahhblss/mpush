@@ -80,6 +80,8 @@ public final class RSAUtils {
     /**
      * 生成公钥和私钥
      *
+     * @param rsaKeySize key size
+     *
      * @return 公钥和私钥
      */
     public static Pair<RSAPublicKey, RSAPrivateKey> genKeyPair(int rsaKeySize) {
@@ -269,13 +271,13 @@ public final class RSAUtils {
      * @throws IllegalBlockSizeException
      */
     private static byte[] doFinal(Cipher cipher, byte[] data, int key_len) throws BadPaddingException, IllegalBlockSizeException {
-        int inputLen = data.length, offSet = 0;
+        int inputLen = data.length, offset = 0;
         byte[] tmp;
         ByteArrayOutputStream out = new ByteArrayOutputStream(getTmpArrayLength(inputLen));
         while (inputLen > 0) {
-            tmp = cipher.doFinal(data, offSet, Math.min(key_len, inputLen));
+            tmp = cipher.doFinal(data, offset, Math.min(key_len, inputLen));
             out.write(tmp, 0, tmp.length);
-            offSet += key_len;
+            offset += key_len;
             inputLen -= key_len;
         }
         return out.toByteArray();
