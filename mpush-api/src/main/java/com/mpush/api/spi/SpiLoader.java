@@ -65,6 +65,13 @@ public final class SpiLoader {
         }
     }
 
+    /**
+     * 获取指定名称的服务实现类，如果有多个实现类，使用Spi.order大的实现类
+     * @param factories
+     * @param name
+     * @param <T>
+     * @return
+     */
     private static <T> T filterByName(ServiceLoader<T> factories, String name) {
         Iterator<T> it = factories.iterator();
         if (name == null) {
