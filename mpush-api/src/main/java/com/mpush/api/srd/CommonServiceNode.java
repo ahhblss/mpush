@@ -36,6 +36,9 @@ public final class CommonServiceNode implements ServiceNode {
 
     private Map<String, String> attrs;
 
+    /**
+     * transient 属性无需序列化
+     */
     private transient String name;
 
     private transient String nodeId;

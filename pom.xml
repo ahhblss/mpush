@@ -41,6 +41,7 @@
         <module>mpush-monitor</module>
         <module>mpush-zk</module>
         <module>mpush-cache</module>
+        <module>learn_test</module>
     </modules>
 
     <properties>
