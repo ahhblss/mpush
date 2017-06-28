@@ -28,7 +28,7 @@ import com.mpush.api.spi.common.CacheManagerFactory;
  *
  * @author ohun@live.cn (夜色)
  */
-@Spi(order = 2)
+@Spi(order = -1)
 public final class SimpleCacheMangerFactory implements CacheManagerFactory {
     @Override
     public CacheManager get() {

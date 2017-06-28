@@ -29,6 +29,7 @@ public class Main {
      * @param args 启动参数
      */
     public static void main(String[] args) {
+        //日志初始化
         Logs.init();
         Logs.Console.info("launch mpush server...");
         ServerLauncher launcher = new ServerLauncher();

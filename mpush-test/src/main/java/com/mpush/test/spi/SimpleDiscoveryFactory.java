@@ -28,7 +28,7 @@ import com.mpush.api.srd.ServiceDiscovery;
  *
  * @author ohun@live.cn (夜色)
  */
-@Spi(order = 2)
+@Spi(order = -1)
 public final class SimpleDiscoveryFactory implements ServiceDiscoveryFactory {
     @Override
     public ServiceDiscovery get() {

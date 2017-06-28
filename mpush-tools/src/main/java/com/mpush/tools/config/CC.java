@@ -40,7 +40,12 @@ import static java.util.stream.Collectors.toCollection;
 public interface CC {
     Config cfg = load();
 
+    /**
+     * 加载配置文件
+     * @return Config
+     */
     static Config load() {
+        //加载配置文件，只能加载src/main/resources目录下的application.conf文件
         Config config = ConfigFactory.load();//扫描加载所有可用的配置文件
         String custom_conf = "mp.conf";//加载自定义配置, 值来自jvm启动参数指定-Dmp.conf
         if (config.hasPath(custom_conf)) {
@@ -76,6 +81,10 @@ public interface CC {
 
             String epoll_provider = cfg.getString("epoll-provider");
 
+            /**
+             * 只在linux下使用netty提供的epoll库
+             * @return
+             */
             static boolean useNettyEpoll() {
                 if (!"netty".equals(CC.mp.core.epoll_provider)) return false;
                 String name = CC.cfg.getString("os.name").toLowerCase(Locale.UK).trim();
