@@ -20,6 +20,7 @@
 package com.mpush.api.connection;
 
 /**
+ * 用密码书写
  * Created by ohun on 2015/12/28.
  *
  * @author ohun@live.cn

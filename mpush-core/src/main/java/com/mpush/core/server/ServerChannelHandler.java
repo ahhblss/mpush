@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author ohun@live.cn
  */
-@ChannelHandler.Sharable
+@ChannelHandler.Sharable //comment:http://blog.csdn.net/abc_key/article/details/37928441
 public final class ServerChannelHandler extends ChannelInboundHandlerAdapter {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ServerChannelHandler.class);

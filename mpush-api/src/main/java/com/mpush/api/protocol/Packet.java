@@ -33,8 +33,11 @@ import java.net.InetSocketAddress;
  */
 @SuppressWarnings("unchecked")
 public class Packet {
+    //mpush使用的为自定义私有协议，定长Header + body, 其中header部分固定13个字节
+    //心跳固定为一个字节，值为 -33
     public static final int HEADER_LEN = 13;
 
+    //表示当前包启用的特性，比如是否启用加密，是否启用压缩;java  byte是8bit,-128~127
     public static final byte FLAG_CRYPTO = 1;
     public static final byte FLAG_COMPRESS = 2;
     public static final byte FLAG_BIZ_ACK = 4;
@@ -45,7 +48,7 @@ public class Packet {
     public static final byte[] HB_PACKET_BYTES = new byte[]{HB_PACKET_BYTE};
     public static final Packet HB_PACKET = new Packet(Command.HEARTBEAT);
 
-    public byte cmd; //命令
+    public byte cmd; //命令;消息协议类型
     transient public short cc; //校验码 暂时没有用到
     public byte flags; //特性，如是否加密，是否压缩等
     public int sessionId; // 会话id。客户端生成。
@@ -181,6 +184,7 @@ public class Packet {
     }
 
     public static ByteBuf getHBPacket() {
+        //Creates a new big-endian buffer which wraps the specified array
         return Unpooled.wrappedBuffer(HB_PACKET_BYTES);
     }
 }
