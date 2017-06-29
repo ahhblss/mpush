@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public abstract class BaseService implements Service {
 
-    protected final AtomicBoolean started = new AtomicBoolean();
+    protected final AtomicBoolean started = new AtomicBoolean();//默认false
 
     @Override
     public void init() {
