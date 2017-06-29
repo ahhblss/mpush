@@ -38,12 +38,15 @@ public final class SpiLoader {
         String key = clazz.getName();
         Object o = CACHE.get(key);
         if (o == null) {
+            //未缓存
             T t = load0(clazz, name);
             if (t != null) {
                 CACHE.put(key, t);
                 return t;
             }
         } else if (clazz.isInstance(o)) {
+//            Determines if the specified o is assignment-compatible
+//                    with the object represented by this clazz
             return (T) o;
         }
         return load0(clazz, name);
