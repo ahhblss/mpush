@@ -56,6 +56,7 @@ public final class SpiLoader {
         ServiceLoader<T> factories = ServiceLoader.load(clazz);
         T t = filterByName(factories, name);
 
+        //??什么情况会出现class用不同的classload加载
         if (t == null) {
             factories = ServiceLoader.load(clazz, SpiLoader.class.getClassLoader());
             t = filterByName(factories, name);

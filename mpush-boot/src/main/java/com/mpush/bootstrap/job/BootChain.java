@@ -35,7 +35,7 @@ import java.util.function.Supplier;
 public final class BootChain {
     private final BootJob boot = new BootJob() {
         {
-            ServerEventListenerFactory.create();// 初始化服务监听
+            ServerEventListenerFactory.create();// 初始化服务监听,目前使用DefaultServerEventListener,所有事件都是空实现
         }
 
         @Override
