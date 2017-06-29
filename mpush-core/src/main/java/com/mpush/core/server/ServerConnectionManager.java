@@ -52,7 +52,7 @@ public final class ServerConnectionManager implements ConnectionManager {
 
     public ServerConnectionManager(boolean heartbeatCheck) {
         this.heartbeatCheck = heartbeatCheck;
-        this.holderFactory = heartbeatCheck ? HeartbeatCheckTask::new : SimpleConnectionHolder::new;
+        this.holderFactory = heartbeatCheck ? HeartbeatCheckTask::new : SimpleConnectionHolder::new;//Class::new构造器的引用
     }
 
     @Override
