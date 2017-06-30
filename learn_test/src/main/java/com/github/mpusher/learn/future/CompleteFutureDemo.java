@@ -1,4 +1,4 @@
-package com.github.mpusher.learn.jdk8_features;
+package com.github.mpusher.learn.future;
 
 import java.time.LocalTime;
 import java.util.Random;
