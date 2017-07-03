@@ -26,7 +26,7 @@ import com.mpush.tools.log.Logs;
 
 /**
  * Created by ohun on 2015/12/22.
- *
+ * 心跳
  * @author ohun@live.cn
  */
 public final class HeartBeatHandler implements MessageHandler {

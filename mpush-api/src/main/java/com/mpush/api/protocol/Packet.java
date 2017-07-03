@@ -97,20 +97,23 @@ public class Packet {
         short checkCode = 0;
         if (body != null) {
             for (int i = 0; i < body.length; i++) {
-                checkCode += (body[i] & 0x0ff);
+                checkCode += (body[i] & 0x0ff);//0000 0000 1111 1111 一个数字和 0x0ff 进行与运算，则会把高8位置0，低8位保留
+//                java里InputStream.read()一个读一个byte, 但是返回一个int, 四字节;
+//                但实际上有用的只是最后的那个byte. 所以需要每次in.read() & 0x0ff;
             }
         }
         return checkCode;
     }
 
     public byte calcLrc() {
+//        Unpooled.buffer:Creates a new big-endian Java heap buffer with the specified capacity
         byte[] data = Unpooled.buffer(HEADER_LEN - 1)
                 .writeInt(getBodyLength())
                 .writeByte(cmd)
                 .writeShort(cc)
                 .writeByte(flags)
                 .writeInt(sessionId)
-                .array();
+                .array();//Returns the backing byte array of this buffer
         byte lrc = 0;
         for (int i = 0; i < data.length; i++) {
             lrc ^= data[i];
