@@ -19,6 +19,7 @@ public class EchoTask implements Runnable {
     @Override
     public void run() {
         try {
+            System.out.println(socket.getRemoteSocketAddress());
             InputStream is = socket.getInputStream();
             OutputStream os = socket.getOutputStream();
             byte[] data;
